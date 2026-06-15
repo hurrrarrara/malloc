@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -51,35 +52,72 @@
 #include <stdlib.h>
 #include <string.h>
 
-int main(void) {
-  void *ptrs[512];
-  int i;
+static inline void print_nb(size_t n, size_t base)
+{
+	static char c[] = "0123456789abcdef";
 
-  for (i = 0; i < 100; i++) {
-    ptrs[i] = malloc((i % 32) + 1);
-    if (ptrs[i] == NULL)
-      break;
-    show_alloc_mem();
-    // memset(ptrs[i], 'A', (i % 32) + 1);
-  }
-
-  for (int j = 0; j < 500; j += 2) {
-    free(ptrs[j]);
-    show_alloc_mem();
-  }
-
-  for (i = 0; i < 256; i++) {
-    void *p = malloc(8);
-    // memset(p, 'B', 8);
-    show_alloc_mem();
-    free(p);
-  }
-
-  for (i = 1; i < 512; i += 2) {
-
-    show_alloc_mem();
-    free(ptrs[i]);
-  }
-
-  return (0);
+	if (n >= base)
+		print_nb(n / base, base);
+	write(1, c + (n % base), 1);
 }
+
+int main(void)
+{
+	const int count = 4;
+	void *ptrs[count];
+	for (int i = 0; i < count; i++) {
+		ptrs[i] = malloc(9000);
+		write(1, "allocation : ", 13);
+		print_nb((uintptr_t)ptrs[i], 16);
+		write(1, "\n", 1);
+		// write(1, "\n###############\n\0", 18);
+	}
+	show_alloc_mem();
+	ptrs[3] = realloc(ptrs[3], 9010);
+	show_alloc_mem();
+
+	// write(1, "\n###############\n\0", 18);
+	// write(1, "\n\n\0", 3);
+	// write(1, "\n###############\n\0", 18);
+	//
+	for (int i = 0; i < 4; i++) {
+		free(ptrs[3 - i]);
+		// show_alloc_mem();
+		// write(1, "\n###############\n\0", 18);
+	}
+	return 0;
+}
+
+// int main(void)
+// {
+// 	void *ptrs[512];
+// 	int i;
+//
+// 	for (i = 0; i < 1024; i++) {
+// 		ptrs[i] = malloc((i % 32) + 18);
+// 		// if (ptrs[i] == NULL)
+// 		// 	break;
+// 		// show_alloc_mem();
+// 		// memset(ptrs[i], 'A', (i % 32) + 1);
+// 	}
+//
+// 	show_alloc_mem();
+// 	// for (int j = 0; j < 500; j += 2) {
+// 	// 	free(ptrs[j]);
+// 	// show_alloc_mem();
+// 	// }
+//
+// 	// for (i = 0; i < 256; i++) {
+// 	// 	void *p = malloc(8);
+// 	// 	// memset(p, 'B', 8);
+// 	// 	// show_alloc_mem();
+// 	// 	free(p);
+// 	// }
+//
+// 	for (i = 1; i < 1024; i += 2) {
+//
+// 		free(ptrs[i]);
+// 	}
+//
+// 	return (0);
+// }

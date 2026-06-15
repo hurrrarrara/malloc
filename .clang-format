@@ -1,0 +1,45 @@
+---
+Language: C
+BasedOnStyle: LLVM
+
+# ---- Indentation (kernel style) ----
+UseTab: Always
+IndentWidth: 8
+TabWidth: 8
+
+# ---- Line length ----
+ColumnLimit: 80
+
+# ---- Braces (kernel style-ish) ----
+BreakBeforeBraces: Linux
+
+# ---- Pointers ----
+PointerAlignment: Right
+
+# ---- Control statements ----
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+
+# ---- Functions ----
+AlwaysBreakAfterReturnType: None
+AlwaysBreakAfterDefinitionReturnType: None
+
+# ---- Includes ----
+SortIncludes: false
+
+# ---- Indentation of case labels ----
+IndentCaseLabels: true
+
+# ---- Spaces ----
+SpaceBeforeParens: ControlStatements
+SpaceAfterCStyleCast: false
+
+# ---- Preprocessor ----
+IndentPPDirectives: None
+
+# ---- Penalty tweaks (keeps formatting more "C-like") ----
+PenaltyBreakComment: 10
+PenaltyBreakString: 10
+
+...

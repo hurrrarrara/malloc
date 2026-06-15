@@ -6,7 +6,7 @@ NAME    := libft_malloc_$(HOSTTYPE).so
 LINK    := libft_malloc.so
 
 CC      := cc
-CFLAGS  := -Wall -Wextra -Werror -fPIC -g3
+CFLAGS  := -Wall -Wextra -Werror -fPIC -g3 -Iinternal
 LDFLAGS := -shared
 
 SRC     := includes/malloc.c
