@@ -6,19 +6,33 @@ NAME    := libft_malloc_$(HOSTTYPE).so
 LINK    := libft_malloc.so
 
 CC      := cc
-CFLAGS  := -Wall -Wextra -Werror -fPIC -g3 -Iinternal
+CFLAGS  := -Wall -Wextra -Werror -fPIC -g3 
+CPPFLAGS  := -Iinclude -Iinternal
 LDFLAGS := -shared
 
-SRC     := includes/malloc.c
-OBJ     := $(SRC:.c=.o)
+CPPFLAGS  := -Iinclude -Iinternal
+
+SRC_DIR   := src
+OBJ_DIR   := obj
+
+SRC       := \
+	$(SRC_DIR)/malloc.c \
+	$(SRC_DIR)/heap.c \
+	$(SRC_DIR)/block.c \
+	$(SRC_DIR)/free_list.c \
+	$(SRC_DIR)/show_mem.c \
+
+OBJ     := $(SRC:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
+INC := includes/malloc.h internal/malloc_internal.h
 
 all: $(NAME) symlink
 
 $(NAME): $(OBJ)
 	$(CC) $(LDFLAGS) -o $@ $^
 
-%.o: %.c includes/malloc.h
-	$(CC) $(CFLAGS) -c $< -o $@
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c includes/malloc.h
+	@mkdir -p $(OBJ_DIR)
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
 symlink: $(NAME)
 	ln -sf $(NAME) $(LINK)

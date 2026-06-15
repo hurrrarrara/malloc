@@ -11,9 +11,9 @@
 #define IS_ALIGNED(size) ((size) % ALIGNMENT == 0)
 #define ALIGN(size) (((size) + (ALIGNMENT - 1)) & ~(ALIGNMENT - 1))
 
-#define TINY_PAGE_SIZE sysconf(_SC_PAGESIZE) * 4
+#define TINY_PAGE_SIZE (size_t)(sysconf(_SC_PAGESIZE) * 4)
 #define TINY_BLOCK_SIZE (size_t)TINY_PAGE_SIZE / 128
-#define SMALL_PAGE_SIZE sysconf(_SC_PAGESIZE) * 16
+#define SMALL_PAGE_SIZE (size_t)(sysconf(_SC_PAGESIZE) * 16)
 #define SMALL_BLOCK_SIZE (size_t)TINY_PAGE_SIZE / 128
 #define MIN_BLOCK_SIZE (size_t)ALIGN(sizeof(t_free_block) + sizeof(t_block))
 

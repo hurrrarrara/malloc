@@ -1,4 +1,4 @@
-#include "internal/malloc_internal.h"
+#include "../internal/malloc_internal.h"
 
 static inline t_block *alloc_heap(t_heap *heap, size_t size)
 {
@@ -63,7 +63,8 @@ void *expand_heap(t_heap *heap, size_t size)
 
 void free_heap(t_heap *heap, t_block *heap_addr, t_free_block *block)
 {
-	if (block_size(block) != block_size(heap) - sizeof(t_block) * 2)
+	if (block_size(block) != block_size(heap) - sizeof(t_block) * 2 &&
+	    heap->size != 0)
 		return;
 	t_block *prev = NULL;
 	t_block *start = heap->head;

@@ -1,5 +1,5 @@
 #include "malloc.h"
-#include "./internal/malloc_internal.h"
+#include "../internal/malloc_internal.h"
 
 t_malloc_state g_state = {0};
 
@@ -71,5 +71,3 @@ void *realloc(void *ptr, size_t size)
 	free_block(block, heap_addr);
 	return new_ptr;
 }
-
-void show_alloc_mem();

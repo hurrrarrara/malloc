@@ -1,4 +1,4 @@
-#include "internal/malloc_internal.h"
+#include "../internal/malloc_internal.h"
 
 static void dump_block(t_block *block)
 {
@@ -65,14 +65,14 @@ void dump_heap(void *head, int nb, char *heap_class)
 	write_str("]\n\n");
 
 	t_block *block = (t_block *)((char *)head + sizeof(t_block));
-	t_block *end = get_footer(head);
+	// t_block *end = get_footer(head);
 
-	while (block < end) {
-		dump_block(block);
+	// while (block < end) {
+	dump_block(block);
 
-		block = next_block(block);
-		write_str("\n");
-	}
+	block = next_block(block);
+	write_str("\n");
+	// }
 
 	footer = get_footer(head);
 
@@ -97,20 +97,23 @@ void show_alloc_mem()
 	size_t i = 0;
 	t_block *start = g_state.tiny.head;
 	while (start != NULL) {
-		dump_heap(start, i++, C_CYAN "TINY" C_RESET);
+		// dump_heap(start, i++, C_CYAN "TINY" C_RESET);
 		start = get_footer(start)->next;
+		write_str("T");
 	}
 	i = 0;
 	start = g_state.small.head;
 	while (start != NULL) {
-		dump_heap(start, i++, C_CYAN "SMALL" C_RESET);
+		// dump_heap(start, i++, C_CYAN "SMALL" C_RESET);
 		start = get_footer(start)->next;
+		write_str("S");
 	}
 	i = 0;
-	start = g_state.small.head;
+	start = g_state.big.head;
 	while (start != NULL) {
 		dump_heap(start, i++, C_CYAN "BIG" C_RESET);
 		start = get_footer(start)->next;
+		write_str("B");
 	}
 
 	write_str("\n\n=================================================\n");

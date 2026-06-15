@@ -1,4 +1,4 @@
-#include "internal/malloc_internal.h"
+#include "../internal/malloc_internal.h"
 
 static inline void *split_block(t_free_block *block, size_t size)
 {
@@ -82,16 +82,18 @@ void *allocate_block(size_t size)
 		return split_block(block, size);
 	}
 	pop_block(block, heap);
+	block->size = size;
 	set_alloc_block(block);
+	get_footer(block)->size = block->size;
 	return block;
 }
 
 bool is_valid_block(t_block *block, t_block *heap_addr)
 {
-	if (block_size(heap_addr) == TINY_PAGE_SIZE &&
-		block_size(block) > TINY_BLOCK_SIZE ||
-	    block_size(heap_addr) == SMALL_PAGE_SIZE &&
-		block_size(block) > SMALL_BLOCK_SIZE)
+	if ((block_size(heap_addr) == TINY_PAGE_SIZE &&
+	     block_size(block) > TINY_BLOCK_SIZE) ||
+	    (block_size(heap_addr) == SMALL_PAGE_SIZE &&
+	     block_size(block) > SMALL_BLOCK_SIZE))
 		return false;
 	t_block *start = (t_block *)((char *)heap_addr + sizeof(t_block));
 	t_block *end = get_footer(heap_addr);

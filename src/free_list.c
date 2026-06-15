@@ -1,4 +1,4 @@
-#include "internal/malloc_internal.h"
+#include "../internal/malloc_internal.h"
 
 void insert_block(t_free_block *block, t_heap *heap)
 {
