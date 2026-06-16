@@ -1,4 +1,5 @@
 #include "../internal/malloc_internal.h"
+#include <assert.h>
 
 static inline void *split_block(t_free_block *block, size_t size)
 {
@@ -7,11 +8,16 @@ static inline void *split_block(t_free_block *block, size_t size)
 
 	t_block *alloc_block = next_block(block);
 	alloc_block->size = size;
+	set_block_mask(alloc_block);
 	set_alloc_block(alloc_block);
 	get_footer(alloc_block)->size = alloc_block->size;
 
 	set_free_block(block);
 	get_footer(block)->size = block->size;
+
+	// write_str("ALLOC: ");
+	// write_ptr(get_payload(alloc_block));
+	// write_str("\n");
 
 	return alloc_block;
 }
@@ -24,7 +30,7 @@ static inline t_free_block *find_free_block(size_t size, t_heap *heap)
 			return start;
 		start = start->next;
 	}
-	if (expand_heap(heap, size) == NULL)
+	if (expand_heap(heap, size + 2 * sizeof(t_block)) == NULL)
 		return NULL;
 	return find_free_block(size, heap);
 }
@@ -73,6 +79,8 @@ void *allocate_block(size_t size)
 		? &g_state.tiny
 		: (size <= SMALL_BLOCK_SIZE ? &g_state.small : &g_state.big);
 	t_free_block *block = find_free_block(size, heap);
+	if (!corruption_check(block))
+		return NULL;
 	if (block == NULL)
 		return NULL;
 	if ((size <= TINY_BLOCK_SIZE &&
@@ -82,14 +90,18 @@ void *allocate_block(size_t size)
 		return split_block(block, size);
 	}
 	pop_block(block, heap);
-	block->size = size;
 	set_alloc_block(block);
 	get_footer(block)->size = block->size;
+	// write_str("ALLOC: ");
+	// write_ptr(get_payload(block));
+	// write_str("\n");
 	return block;
 }
 
 bool is_valid_block(t_block *block, t_block *heap_addr)
 {
+	if (!corruption_check(block))
+		return false;
 	if ((block_size(heap_addr) == TINY_PAGE_SIZE &&
 	     block_size(block) > TINY_BLOCK_SIZE) ||
 	    (block_size(heap_addr) == SMALL_PAGE_SIZE &&

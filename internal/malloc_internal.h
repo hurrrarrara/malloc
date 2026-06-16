@@ -6,19 +6,24 @@
 #include <stddef.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #define ALIGNMENT _Alignof(max_align_t)
 #define IS_ALIGNED(size) ((size) % ALIGNMENT == 0)
 #define ALIGN(size) (((size) + (ALIGNMENT - 1)) & ~(ALIGNMENT - 1))
-
-#define TINY_PAGE_SIZE (size_t)(sysconf(_SC_PAGESIZE) * 4)
-#define TINY_BLOCK_SIZE (size_t)TINY_PAGE_SIZE / 128
-#define SMALL_PAGE_SIZE (size_t)(sysconf(_SC_PAGESIZE) * 16)
-#define SMALL_BLOCK_SIZE (size_t)TINY_PAGE_SIZE / 128
-#define MIN_BLOCK_SIZE (size_t)ALIGN(sizeof(t_free_block) + sizeof(t_block))
-
 #define ALIGN_PAGE(size)                                                       \
 	(((size) + (sysconf(_SC_PAGESIZE) - 1)) & ~(ALIGNMENT - 1))
+
+// #define TINY_PAGE_SIZE (size_t)(sysconf(_SC_PAGESIZE) * 32)
+// #define TINY_BLOCK_SIZE (size_t)TINY_PAGE_SIZE / 256
+// #define SMALL_PAGE_SIZE (size_t)(sysconf(_SC_PAGESIZE) * 256)
+// #define SMALL_BLOCK_SIZE (size_t)TINY_PAGE_SIZE / 512v
+#define TINY_BLOCK_SIZE (size_t)ALIGN(512)
+#define TINY_PAGE_SIZE ALIGN_PAGE(TINY_BLOCK_SIZE * 256)
+#define SMALL_BLOCK_SIZE (size_t)ALIGN(sysconf(_SC_PAGESIZE) / 2)
+#define SMALL_PAGE_SIZE ALIGN_PAGE(SMALL_BLOCK_SIZE * 512)
+
+#define MIN_BLOCK_SIZE (size_t)ALIGN(sizeof(t_free_block) + sizeof(t_block))
 
 static const size_t block_free_bit = 0x1;
 
@@ -31,11 +36,11 @@ static const size_t block_free_bit = 0x1;
 //
 typedef enum e_class { TINY, SMALL, BIG } t_class;
 
-union s_block {
+#ifdef NDEBUG
+typedef union s_block {
 	size_t size;
 	union s_block *next;
-} __attribute__((aligned(ALIGNMENT)));
-typedef union s_block t_block;
+} t_block __attribute__((aligned(ALIGNMENT)));
 
 struct s_free_block {
 	size_t size;
@@ -43,6 +48,29 @@ struct s_free_block {
 	struct s_free_block *prev;
 } __attribute__((aligned(ALIGNMENT)));
 typedef struct s_free_block t_free_block;
+#else
+
+#define CORRUPTION_MASK (uint64_t)0xDEADBEEFCAFEBABE
+
+typedef struct s_block {
+	uint64_t mask;
+	union {
+		size_t size;
+		struct s_block *next;
+	};
+} t_block __attribute__((aligned(ALIGNMENT)));
+
+struct s_free_block {
+	uint64_t mask;
+	union {
+		size_t size;
+		struct s_block *next_;
+	};
+	struct s_free_block *next;
+	struct s_free_block *prev;
+} __attribute__((aligned(ALIGNMENT)));
+typedef struct s_free_block t_free_block;
+#endif
 
 typedef struct s_heap {
 	t_block *head;
@@ -56,7 +84,14 @@ typedef struct s_malloc_state {
 	t_heap big;
 } t_malloc_state;
 
+typedef struct s_mutex_state {
+	pthread_mutex_t mutex;
+	pthread_mutexattr_t attr;
+	bool init;
+} t_mutex_state;
+
 extern t_malloc_state g_state;
+// extern t_mutex_state g_mutex;
 
 //---------------------------------------------------------------------------//
 
@@ -73,6 +108,14 @@ void insert_block(t_free_block *block, t_heap *heap);
 void pop_block(t_free_block *block, t_heap *heap);
 
 //---------------------------------------------------------------------------//
+
+static inline size_t precompute_size(size_t size)
+{
+	size = ALIGN(size + 2 * sizeof(t_block));
+	size = size < MIN_BLOCK_SIZE ? MIN_BLOCK_SIZE : size;
+	// size = size > SMALL_BLOCK_SIZE ? size : size;
+	return size;
+}
 
 static inline bool is_free_block(void *block)
 {
@@ -92,6 +135,11 @@ static inline void set_alloc_block(void *block)
 static inline size_t block_size(void *block)
 {
 	return ((t_block *)block)->size & ~block_free_bit;
+}
+
+static inline size_t payload_size(void *block)
+{
+	return block_size(block) - 2 * sizeof(t_block);
 }
 
 /*
@@ -180,6 +228,21 @@ static inline void write_ptr(void *ptr)
 {
 	write_str("0x");
 	write_nbr((uintptr_t)ptr, 16);
+}
+
+static inline bool corruption_check(void *block)
+{
+#ifndef NDEBUG
+	return ((t_block *)block)->mask == CORRUPTION_MASK;
+#endif
+	return true;
+}
+
+static inline void set_block_mask(void *block)
+{
+#ifndef NDEBUG
+	((t_block *)block)->mask = CORRUPTION_MASK;
+#endif
 }
 
 #endif

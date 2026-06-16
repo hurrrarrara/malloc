@@ -64,7 +64,7 @@ static inline void print_nb(size_t n, size_t base)
 int main(void)
 {
 	const int count = 4;
-	void *ptrs[count];
+	void *ptrs[count + 1];
 	for (int i = 0; i < count; i++) {
 		ptrs[i] = malloc(9000);
 		write(1, "allocation : ", 13);

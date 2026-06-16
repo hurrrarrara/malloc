@@ -65,14 +65,14 @@ void dump_heap(void *head, int nb, char *heap_class)
 	write_str("]\n\n");
 
 	t_block *block = (t_block *)((char *)head + sizeof(t_block));
-	// t_block *end = get_footer(head);
+	t_block *end = get_footer(head);
 
-	// while (block < end) {
-	dump_block(block);
+	while (block < end) {
+		dump_block(block);
 
-	block = next_block(block);
-	write_str("\n");
-	// }
+		block = next_block(block);
+		write_str("\n");
+	}
 
 	footer = get_footer(head);
 
@@ -87,6 +87,14 @@ void dump_heap(void *head, int nb, char *heap_class)
 void show_alloc_mem()
 {
 	write_str("\n================ ALLOCATOR STATE ================\n\n");
+	write_nbr(TINY_PAGE_SIZE, 10);
+	write_str(" | ");
+	write_nbr(TINY_BLOCK_SIZE, 10);
+	write_str("\n");
+	write_nbr(SMALL_PAGE_SIZE, 10);
+	write_str(" | ");
+	write_nbr(SMALL_BLOCK_SIZE, 10);
+	write_str("\n");
 	if (g_state.tiny.head == NULL && g_state.small.head == NULL &&
 	    g_state.big.head == NULL) {
 		write(1, "HEAP : heap is empty\n", 21);
@@ -97,23 +105,20 @@ void show_alloc_mem()
 	size_t i = 0;
 	t_block *start = g_state.tiny.head;
 	while (start != NULL) {
-		// dump_heap(start, i++, C_CYAN "TINY" C_RESET);
+		dump_heap(start, i++, C_CYAN "TINY" C_RESET);
 		start = get_footer(start)->next;
-		write_str("T");
 	}
 	i = 0;
 	start = g_state.small.head;
 	while (start != NULL) {
-		// dump_heap(start, i++, C_CYAN "SMALL" C_RESET);
+		dump_heap(start, i++, C_CYAN "SMALL" C_RESET);
 		start = get_footer(start)->next;
-		write_str("S");
 	}
 	i = 0;
 	start = g_state.big.head;
 	while (start != NULL) {
 		dump_heap(start, i++, C_CYAN "BIG" C_RESET);
 		start = get_footer(start)->next;
-		write_str("B");
 	}
 
 	write_str("\n\n=================================================\n");
