@@ -64,6 +64,7 @@ void *expand_heap(t_heap *heap, size_t size)
 
 void free_heap(t_heap *heap, t_block *heap_addr, t_free_block *block)
 {
+	// write_str("free_heap\n\0");
 	if (block_size(block) != block_size(heap_addr) - sizeof(t_block) * 2 &&
 	    heap->size != 0)
 		return;

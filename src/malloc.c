@@ -56,19 +56,23 @@ void free(void *ptr)
 	g_state.small.size = SMALL_PAGE_SIZE;
 
 	t_block *heap_addr = get_heap_from_ptr(ptr);
+	// write_str("free 1if\n\0");
 	if (heap_addr == NULL) {
 		pthread_mutex_unlock(&g_mutex);
 		return;
 	}
 	t_block *block = get_header_from_payload(ptr);
+	// write_str("free 2if\n\0");
 	if (!is_valid_block((t_block *)block, heap_addr) ||
 	    is_free_block(block)) {
 		pthread_mutex_unlock(&g_mutex);
 		return;
 	}
 
-	free_block(block, heap_addr);
+	free_allocated_block(block, heap_addr);
+	// write_str("free end\n\0");
 	pthread_mutex_unlock(&g_mutex);
+	return;
 }
 
 static inline void *realloc_impl(void *ptr, size_t size)
@@ -79,7 +83,7 @@ static inline void *realloc_impl(void *ptr, size_t size)
 	t_block *block = get_header_from_payload(ptr);
 
 	if (size == 0) {
-		free_block(block, heap_addr);
+		free_allocated_block(block, heap_addr);
 		return NULL;
 	}
 
@@ -101,7 +105,7 @@ static inline void *realloc_impl(void *ptr, size_t size)
 	for (size_t i = 0; i < size; i++) {
 		((char *)new_ptr)[i] = ((char *)ptr)[i];
 	}
-	free_block(block, heap_addr);
+	free_allocated_block(block, heap_addr);
 	return new_ptr;
 }
 

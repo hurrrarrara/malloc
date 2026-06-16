@@ -96,7 +96,7 @@ extern t_malloc_state g_state;
 //---------------------------------------------------------------------------//
 
 void *allocate_block(size_t size);
-void free_block(t_block *block, t_block *heap_addr);
+void free_allocated_block(t_block *block, t_block *heap_addr);
 bool is_valid_block(t_block *block, t_block *heap_header);
 
 void *expand_heap(t_heap *heap, size_t size);

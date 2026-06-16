@@ -117,8 +117,9 @@ bool is_valid_block(t_block *block, t_block *heap_addr)
 	return false;
 }
 
-void free_block(t_block *block, t_block *heap_addr)
+void free_allocated_block(t_block *block, t_block *heap_addr)
 {
+	// write(1, "free_block\n", 11);
 	t_heap *heap =
 	    (block_size(heap_addr) == TINY_PAGE_SIZE
 		 ? &g_state.tiny
