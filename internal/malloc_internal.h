@@ -199,6 +199,52 @@ static inline void write_ptr(void *ptr)
 
 #ifndef NDEBUG
 #define LOG(call) write_str(call "\n");
+#define LOG_MALLOC_CALL(size)                                                  \
+	write_str("malloc call, size: ");                                      \
+	write_nbr(size, 10);                                                   \
+	write_str("\n");
+#define LOG_REALLOC_CALL(ptr, size)                                            \
+	write_str("realloc call, ptr: ");                                      \
+	write_ptr(ptr);                                                        \
+	write_str(" size: ");                                                  \
+	write_nbr(size, 10);                                                   \
+	write_str("\n");
+#define LOG_REALLOCARRAY_CALL(ptr, count, size)                                \
+	write_str("reallocarray call, ptr: ");                                 \
+	write_ptr(ptr);                                                        \
+	write_str(" count: ");                                                 \
+	write_nbr(count, 10);                                                  \
+	write_str(" size: ");                                                  \
+	write_nbr(size, 10);                                                   \
+	write_str("\n");
+#define LOG_CALLOC_CALL(count, size)                                           \
+	write_str("calloc call, count: ");                                     \
+	write_nbr(count, 10);                                                  \
+	write_str(" size: ");                                                  \
+	write_nbr(size, 10);                                                   \
+	write_str("\n");
+#define LOG_FREE_CALL(ptr)                                                     \
+	write_str("free call, ptr: ");                                         \
+	write_ptr(ptr);                                                        \
+	write_str("\n");
+
+#define LOG_MALLOC_RET(ptr)                                                    \
+	write_str("malloc -> ");                                               \
+	write_ptr(ptr);                                                        \
+	write_str("\n");
+#define LOG_REALLOC_RET(ptr)                                                   \
+	write_str("realloc -> ");                                              \
+	write_ptr(ptr);                                                        \
+	write_str("\n");
+#define LOG_REALLOCARRAY_RET(ptr)                                              \
+	write_str("reallocarray -> ");                                         \
+	write_ptr(ptr);                                                        \
+	write_str("\n");
+#define LOG_CALLOC_RET(ptr)                                                    \
+	write_str("calloc -> ");                                               \
+	write_ptr(ptr);                                                        \
+	write_str("\n");
+
 #define LOG_ALLOC_FAIL(call, size)                                             \
 	write_str(call " alloc fail : ");                                      \
 	write_nbr(size, 10);                                                   \
@@ -215,6 +261,17 @@ static inline void write_ptr(void *ptr)
 	write_str("\n");
 #else
 #define LOG(call)
+#define LOG_MALLOC_CALL(size)
+#define LOG_REALLOC_CALL(ptr, size)
+#define LOG_REALLOCARRAY_CALL(ptr, count, size)
+#define LOG_CALLOC_CALL(count, size)
+#define LOG_FREE_CALL(ptr)
+
+#define LOG_MALLOC_RET(ptr)
+#define LOG_REALLOC_RET(ptr)
+#define LOG_REALLOCARRAY_RET(ptr)
+#define LOG_CALLOC_RET(ptr)
+
 #define LOG_ALLOC_FAIL(call, size)
 #define LOG_FREE_FAIL(call, size)
 #define LOG_INVALID(call, ptr)

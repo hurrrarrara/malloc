@@ -20,9 +20,10 @@ static inline void free_impl(void *ptr)
 
 void free(void *ptr)
 {
+	LOG_FREE_CALL(ptr);
 	if (ptr == NULL || !IS_ALIGNED((uintptr_t)ptr)) {
 		LOG_INVALID("free", ptr);
-		show_alloc_mem();
+		// show_alloc_mem();
 		return;
 	}
 

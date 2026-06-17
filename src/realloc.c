@@ -41,6 +41,7 @@ static inline void *realloc_impl(void *ptr, size_t size)
 void *realloc(void *ptr, size_t size)
 {
 
+	LOG_REALLOC_CALL(ptr, size)
 	if (ptr == NULL)
 		return malloc(size);
 	if (size == 0) {
@@ -61,15 +62,19 @@ void *realloc(void *ptr, size_t size)
 	void *new_ptr = realloc_impl(ptr, size);
 
 	mm_unlock_mtx();
+
+	LOG_REALLOC_RET(new_ptr);
 	return new_ptr;
 }
 
 void *reallocarray(void *ptr, size_t nmemb, size_t size)
 {
+	LOG_REALLOCARRAY_CALL(ptr, nmemb, size)
 	if (size != 0 && nmemb > SIZE_MAX / size) {
 		// errno = ENOMEM;
 		return NULL;
 	}
-	LOG("reallocarray");
-	return realloc(ptr, nmemb * size);
+	void *new_ptr = realloc(ptr, nmemb * size);
+	LOG_REALLOCARRAY_RET(new_ptr);
+	return new_ptr;
 }

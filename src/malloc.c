@@ -13,6 +13,7 @@ void *malloc_impl(size_t size)
 
 void *malloc(size_t size)
 {
+	LOG_MALLOC_CALL(size);
 	if (size == 0)
 		return NULL;
 
@@ -28,6 +29,8 @@ void *malloc(size_t size)
 	}
 
 	mm_unlock_mtx();
+
+	LOG_MALLOC_RET(ret);
 
 	return ret;
 }
