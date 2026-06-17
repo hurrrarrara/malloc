@@ -14,67 +14,44 @@
 #define ALIGN_PAGE(size)                                                       \
 	(((size) + (sysconf(_SC_PAGESIZE) - 1)) & ~(ALIGNMENT - 1))
 
-// #define TINY_PAGE_SIZE (size_t)(sysconf(_SC_PAGESIZE) * 32)
-// #define TINY_BLOCK_SIZE (size_t)TINY_PAGE_SIZE / 256
-// #define SMALL_PAGE_SIZE (size_t)(sysconf(_SC_PAGESIZE) * 256)
-// #define SMALL_BLOCK_SIZE (size_t)TINY_PAGE_SIZE / 512v
 #define TINY_BLOCK_SIZE (size_t)ALIGN(512)
 #define TINY_PAGE_SIZE ALIGN_PAGE(TINY_BLOCK_SIZE * 256)
 #define SMALL_BLOCK_SIZE (size_t)ALIGN(sysconf(_SC_PAGESIZE) / 2)
 #define SMALL_PAGE_SIZE ALIGN_PAGE(SMALL_BLOCK_SIZE * 512)
 
-#define MIN_BLOCK_SIZE (size_t)ALIGN(sizeof(t_free_block) + sizeof(t_block))
+#define MIN_BLOCK_SIZE (size_t)ALIGN(sizeof(t_free_pl) + 2 * sizeof(t_header))
 
 static const size_t block_free_bit = 0x1;
 
-// struct s_block_header {
-// 	size_t size;
-// } __attribute__((aligned(ALIGNMENT)));
-// typedef struct s_block_header t_block_header;
-// typedef struct s_block_header t_block_footer;
-// typedef struct s_block_header t_block;
-//
 typedef enum e_class { TINY, SMALL, BIG } t_class;
 
 #ifdef NDEBUG
-typedef union s_block {
+typedef union s_header {
 	size_t size;
-	union s_block *next;
-} t_block __attribute__((aligned(ALIGNMENT)));
-
-struct s_free_block {
-	size_t size;
-	struct s_free_block *next;
-	struct s_free_block *prev;
-} __attribute__((aligned(ALIGNMENT)));
-typedef struct s_free_block t_free_block;
+	union s_header *next;
+} t_header __attribute__((aligned(ALIGNMENT)));
 #else
 
 #define CORRUPTION_MASK (uint64_t)0xDEADBEEFCAFEBABE
 
-typedef struct s_block {
+typedef struct s_header {
 	uint64_t mask;
 	union {
 		size_t size;
-		struct s_block *next;
+		struct s_header *next_heap;
 	};
-} t_block __attribute__((aligned(ALIGNMENT)));
+} t_header __attribute__((aligned(ALIGNMENT)));
 
-struct s_free_block {
-	uint64_t mask;
-	union {
-		size_t size;
-		struct s_block *next_;
-	};
-	struct s_free_block *next;
-	struct s_free_block *prev;
-} __attribute__((aligned(ALIGNMENT)));
-typedef struct s_free_block t_free_block;
 #endif
 
+typedef struct s_free_pl {
+	t_header *next;
+	t_header *prev;
+} t_free_pl __attribute__((aligned(ALIGNMENT)));
+
 typedef struct s_heap {
-	t_block *head;
-	t_free_block *free_list;
+	t_header *head;
+	t_header *free_list;
 	size_t size;
 } t_heap;
 
@@ -84,116 +61,105 @@ typedef struct s_malloc_state {
 	t_heap big;
 } t_malloc_state;
 
-typedef struct s_mutex_state {
-	pthread_mutex_t mutex;
-	pthread_mutexattr_t attr;
-	bool init;
-} t_mutex_state;
-
 extern t_malloc_state g_state;
-// extern t_mutex_state g_mutex;
 
 //---------------------------------------------------------------------------//
 
-void *allocate_block(size_t size);
-void free_allocated_block(t_block *block, t_block *heap_addr);
-bool is_valid_block(t_block *block, t_block *heap_header);
+void mm_lock_mtx();
+void mm_unlock_mtx();
 
-void *expand_heap(t_heap *heap, size_t size);
-t_block *get_heap_from_ptr(void *ptr);
-void *is_valid_ptr(void *ptr);
-void free_heap(t_heap *heap, t_block *heap_addr, t_free_block *block);
+t_header *mm_alloc_blk(size_t size);
+t_header *mm_is_blk(t_header *hdr);
+void *mm_free_blk(t_header *heap_addr, t_header *hdr);
 
-void insert_block(t_free_block *block, t_heap *heap);
-void pop_block(t_free_block *block, t_heap *heap);
+t_heap mm_select_heap(size_t size);
+t_header *mm_grow_heap(t_heap *heap, size_t size);
+
+void mm_add_free_blk(t_heap *heap, t_header *blk);
+void mm_rm_free_blk(t_heap *heap, t_header *hdr);
+
+// void *allocate_block(size_t size);
+// void free_allocated_block(t_block *block, t_block *heap_addr);
+// bool is_valid_block(t_block *block, t_block *heap_header);
+//
+// void *expand_heap(t_heap *heap, size_t size);
+// t_block *get_heap_from_ptr(void *ptr);
+// void *is_valid_ptr(void *ptr);
+// void free_heap(t_heap *heap, t_block *heap_addr, t_free_block *block);
+//
+// void insert_block(t_free_block *block, t_heap *heap);
+// void pop_block(t_free_block *block, t_heap *heap);
 
 //---------------------------------------------------------------------------//
 
-static inline size_t precompute_size(size_t size)
-{
-	size = ALIGN(size + 2 * sizeof(t_block));
+/* clang-format off */
+
+static inline size_t mm_conform_size(size_t size) {
+	size = ALIGN(size + 2 * sizeof(t_header));
 	size = size < MIN_BLOCK_SIZE ? MIN_BLOCK_SIZE : size;
-	// size = size > SMALL_BLOCK_SIZE ? size : size;
+	size = size < SMALL_BLOCK_SIZE ? size : ALIGN_PAGE(size + 2 * sizeof(t_header)) - 2 * sizeof(t_header);
 	return size;
 }
 
-static inline bool is_free_block(void *block)
-{
-	return ((t_block *)block)->size & block_free_bit;
+static inline size_t mm_blk_size(t_header *hdr) {
+	return (size_t)(hdr->size & ~block_free_bit);
 }
 
-static inline void set_free_block(void *block)
-{
-	((t_block *)block)->size |= block_free_bit;
+static inline size_t mm_pl_size(t_header* hdr) {
+	return mm_blk_size(hdr) - 2 * sizeof(t_header);
 }
 
-static inline void set_alloc_block(void *block)
-{
-	((t_block *)block)->size &= ~block_free_bit;
+static inline bool mm_has_free_bit(t_header *hdr) {
+	return hdr->size & block_free_bit;
 }
 
-static inline size_t block_size(void *block)
-{
-	return ((t_block *)block)->size & ~block_free_bit;
+static inline void mm_set_free_bit(t_header *hdr) {
+	hdr->size |= block_free_bit;
 }
 
-static inline size_t payload_size(void *block)
-{
-	return block_size(block) - 2 * sizeof(t_block);
+static inline void mm_rm_free_bit(t_header *hdr) {
+	hdr->size &= ~block_free_bit;
 }
 
-/*
- *  get the payload from the header
- * */
-static inline void *get_payload(void *block)
-{
-	return (void *)((char *)block + sizeof(t_block));
+static inline t_header* mm_next_hdr(t_header *hdr) {
+	return (t_header*)((char*)hdr + mm_blk_size(hdr));
 }
 
-/*
- *  get the footer from header
- *  */
-static inline t_block *get_footer(void *block)
-{
-	return (t_block *)((char *)block + block_size(block) - sizeof(t_block));
+static inline t_header* mm_prev_ftr(t_header *hdr) {
+	return (t_header*)((char*)hdr - sizeof(t_header));
 }
 
-/*
- *  get the header from footer
- * */
-static inline t_block *get_header_from_footer(void *block)
-{
-	return (t_block *)((char *)block - block_size(block) + sizeof(t_block));
+static inline t_header* mm_hdr_to_ftr(t_header* hdr) {
+	return (t_header*)((char*)hdr + mm_blk_size(hdr) - sizeof(t_header));
 }
 
-/*
- *  get the payload from the header
- * */
-static inline t_block *get_header_from_payload(void *payload)
-{
-	return (t_block *)((char *)payload - sizeof(t_block));
+static inline t_header* mm_ftr_to_hdr(t_header* ftr) {
+	return (t_header*)((char*)ftr - mm_blk_size(ftr) + sizeof(t_header));
 }
 
-/*
- *  get the header of the next block
- * */
-static inline t_block *next_block(void *block)
-{
-	return (t_block *)((char *)block + block_size(block));
+static inline void* mm_hdr_to_pl(t_header* hdr) {
+	return (void*)((char*)hdr + sizeof(t_header));
 }
 
-/*
- *  get the footer of the previous block
- * */
-static inline t_block *prev_block(void *block)
-{
-	return (t_block *)((char *)block - sizeof(t_block));
+static inline t_header* mm_pl_to_hdr(void* pl) {
+	return (t_header*)((char*)pl - sizeof(t_header));
 }
 
-static inline t_block *get_first_block(void *heap)
+static inline bool mm_is_corrup(t_header *hdr)
 {
-	return (t_block *)((char *)heap + sizeof(t_block));
+#ifndef NDEBUG
+	return hdr->mask != CORRUPTION_MASK;
+#endif
+	return false;
 }
+
+static inline void mm_set_hdr_mask(t_header* hdr)
+{
+#ifndef NDEBUG
+	hdr->mask = CORRUPTION_MASK;
+#endif
+}
+/* clang-format on */
 
 //---------------------------------------------------------------------------//
 

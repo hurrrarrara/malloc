@@ -1,22 +1,24 @@
 #include "../internal/malloc_internal.h"
 
-void insert_block(t_free_block *block, t_heap *heap)
+void mm_add_free_blk(t_heap *heap, t_header *hdr)
 {
-	block->next = NULL;
-	if (block != heap->free_list)
-		block->next = heap->free_list;
+	t_free_pl *pl = mm_hdr_to_pl(hdr);
+	pl->next = NULL;
+	if (hdr != heap->free_list)
+		pl->next = heap->free_list;
 	if (heap->free_list != NULL)
-		(heap->free_list)->prev = block;
-	block->prev = NULL;
-	heap->free_list = block;
+		((t_free_pl *)mm_hdr_to_pl(heap->free_list))->prev = hdr;
+	pl->prev = NULL;
+	heap->free_list = hdr;
 }
-void pop_block(t_free_block *block, t_heap *heap)
+
+void mm_rm_free_blk(t_heap *heap, t_header *hdr)
 {
-	if (heap->free_list == block)
-		heap->free_list =
-		    block->prev != NULL ? block->prev : block->next;
-	if (block->next != NULL)
-		block->next->prev = block->prev;
-	if (block->prev != NULL)
-		block->prev->next = block->next;
+	t_free_pl *pl = mm_hdr_to_pl(hdr);
+	if (heap->free_list == hdr)
+		heap->free_list = pl->prev != NULL ? pl->prev : pl->next;
+	if (pl->next != NULL)
+		((t_free_pl *)mm_hdr_to_pl(pl->next))->prev = pl->prev;
+	if (pl->prev != NULL)
+		((t_free_pl *)mm_hdr_to_pl(pl->prev))->next = pl->next;
 }
