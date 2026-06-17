@@ -3,6 +3,10 @@
 
 void *calloc(size_t count, size_t size)
 {
+	if (size != 0 && count > SIZE_MAX / size) {
+		// errno = ENOMEM;
+		return NULL;
+	}
 	LOG("calloc");
 	void *ptr = malloc(count * size);
 	if (ptr == NULL)

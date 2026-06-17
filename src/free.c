@@ -1,4 +1,5 @@
 #include "../internal/malloc_internal.h"
+#include "../includes/malloc.h"
 
 static inline void free_impl(void *ptr)
 {
@@ -19,9 +20,9 @@ static inline void free_impl(void *ptr)
 
 void free(void *ptr)
 {
-	LOG("free");
 	if (ptr == NULL || !IS_ALIGNED((uintptr_t)ptr)) {
-		LOG_INVALID("free", ptr)
+		LOG_INVALID("free", ptr);
+		show_alloc_mem();
 		return;
 	}
 

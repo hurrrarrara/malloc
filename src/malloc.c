@@ -15,7 +15,6 @@ void *malloc(size_t size)
 {
 	if (size == 0)
 		return NULL;
-	LOG("malloc");
 
 	mm_lock_mtx();
 	g_state.big.size = 0;

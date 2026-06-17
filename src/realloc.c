@@ -1,5 +1,6 @@
 #include "../includes/malloc.h"
 #include "../internal/malloc_internal.h"
+#include <stdint.h>
 
 static inline void *realloc_impl(void *ptr, size_t size)
 {
@@ -17,7 +18,7 @@ static inline void *realloc_impl(void *ptr, size_t size)
 	size = mm_conform_size(size);
 	size_t old_size = mm_blk_size(blk);
 	if (old_size >= size) {
-		LOG_INVALID("realloc did nothing", ptr)
+		// LOG_INVALID("realloc did nothing", ptr)
 		return ptr;
 	}
 
@@ -42,7 +43,6 @@ void *realloc(void *ptr, size_t size)
 
 	if (ptr == NULL)
 		return malloc(size);
-	LOG("realloc");
 	if (size == 0) {
 		LOG("realloc size 0");
 		free(ptr);
@@ -66,11 +66,10 @@ void *realloc(void *ptr, size_t size)
 
 void *reallocarray(void *ptr, size_t nmemb, size_t size)
 {
-	// if (size)
-	// {
-	//     // errno = ENOMEM;
-	//     return NULL;
-	// }
+	if (size != 0 && nmemb > SIZE_MAX / size) {
+		// errno = ENOMEM;
+		return NULL;
+	}
 	LOG("reallocarray");
 	return realloc(ptr, nmemb * size);
 }

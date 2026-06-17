@@ -95,7 +95,7 @@ t_header *mm_coalesce(t_heap heap, t_header *blk);
 static inline size_t mm_conform_size(size_t size) {
 	size = ALIGN(size + 2 * sizeof(t_header));
 	size = size < MIN_BLOCK_SIZE ? MIN_BLOCK_SIZE : size;
-	size = size < SMALL_BLOCK_SIZE ? size : ALIGN_PAGE(size + 2 * sizeof(t_header)) - 2 * sizeof(t_header);
+	// size = size < SMALL_BLOCK_SIZE ? size : ALIGN_PAGE(size + 2 * sizeof(t_header)) - 2 * sizeof(t_header);
 	return size;
 }
 

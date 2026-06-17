@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 #include "../includes/malloc.h"
@@ -15,4 +16,11 @@ int main(void)
 	}
 
 	free(p);
+	p = malloc(5);
+	memcpy(p, "abcd", 5);
+
+	p = realloc(p, 4);
+	p[3] = 0;
+
+	assert(strcmp(p, "abc") == 0);
 }

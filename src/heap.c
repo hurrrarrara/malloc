@@ -51,7 +51,7 @@ t_heap mm_ptr_to_heap(void *ptr)
 
 t_header *mm_grow_heap_class(t_heap_class *heap_class, size_t size)
 {
-	size = heap_class->size ? heap_class->size : size;
+	size = heap_class->size ? heap_class->size : ALIGN_PAGE(size);
 	t_header *head = mmap(heap_class->head, size, PROT_READ | PROT_WRITE,
 			      MAP_PRIVATE | MAP_ANON, -1, 0);
 	if (head == MAP_FAILED)
