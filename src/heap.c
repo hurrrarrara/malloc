@@ -1,62 +1,102 @@
 #include "../internal/malloc_internal.h"
+#include <sys/mman.h>
 
-t_heap mm_select_heap(size_t size)
+t_heap_class *mm_select_heap_class(size_t size)
 {
 	return size <= TINY_BLOCK_SIZE
-		   ? g_state.tiny
-		   : (size <= SMALL_BLOCK_SIZE ? g_state.small : g_state.big);
+		   ? &g_state.tiny
+		   : (size <= SMALL_BLOCK_SIZE ? &g_state.small : &g_state.big);
 }
 
-// void *expand_heap(t_heap *heap, size_t size)
-// {
-// 	t_block *head = alloc_heap(heap, heap->size ? heap->size : size);
-// 	if (head == NULL)
-// 		return NULL;
-// 	heap->head = head;
-// 	// write(1, "expand heap: ", 12);
-// 	// write(1, "\n", 1);
-// 	return head;
-// }
-
-// static inline t_block *alloc_heap(t_heap *heap, size_t size)
-// {
-// 	t_block *head = mmap(heap->head, size, PROT_READ | PROT_WRITE,
-// 			     MAP_PRIVATE | MAP_ANON, -1, 0);
-// 	if (head == MAP_FAILED)
-// 		return NULL;
-// 	head->size = size;
-// 	set_block_mask(head);
-// 	set_alloc_block(head);
-// 	t_block *footer = get_footer(head);
-// 	footer->next = heap->head;
-// 	set_alloc_block(footer);
-// 	t_free_block *free_block = (t_free_block *)(head + 1);
-// 	free_block->size = size - 2 * sizeof(t_block);
-// 	set_block_mask(free_block);
-// 	set_free_block(free_block);
-// 	get_footer(free_block)->size = free_block->size;
-// 	insert_block(free_block, heap);
-// 	return head;
-// }
-
-t_header *mm_grow_heap(t_heap *heap, size_t size)
+static inline bool ptr_in_heap(t_header *head, void *ptr)
 {
-	t_header *head =
-	    mmap(heap->head, heap->size ? heap->size : size,
-		 PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+	return ptr >= mm_hdr_to_pl((t_header *)mm_hdr_to_pl(head)) &&
+	       ptr <= (void *)((char *)mm_hdr_to_ftr(head) - MIN_BLOCK_SIZE +
+			       sizeof(t_header));
+}
+
+t_heap mm_ptr_to_heap(void *ptr)
+{
+	t_heap heap;
+	heap._class = &g_state.tiny;
+	t_header *start = heap._class->head;
+	while (start != NULL) {
+		if (ptr_in_heap(start, ptr)) {
+			heap.addr = start;
+			return heap;
+		}
+		start = mm_hdr_to_ftr(start)->next_heap;
+	}
+	heap._class = &g_state.small;
+	start = heap._class->head;
+	while (start != NULL) {
+		if (ptr_in_heap(start, ptr)) {
+			heap.addr = start;
+			return heap;
+		}
+		start = mm_hdr_to_ftr(start)->next_heap;
+	}
+	heap._class = &g_state.big;
+	start = heap._class->head;
+	while (start != NULL) {
+		if (ptr_in_heap(start, ptr)) {
+			heap.addr = start;
+			return heap;
+		}
+		start = mm_hdr_to_ftr(start)->next_heap;
+	}
+	heap.addr = NULL;
+	return heap;
+}
+
+t_header *mm_grow_heap_class(t_heap_class *heap_class, size_t size)
+{
+	size = heap_class->size ? heap_class->size : size;
+	t_header *head = mmap(heap_class->head, size, PROT_READ | PROT_WRITE,
+			      MAP_PRIVATE | MAP_ANON, -1, 0);
 	if (head == MAP_FAILED)
 		return NULL;
 	head->size = size;
 	mm_set_hdr_mask(head);
-	mm_hdr_to_ftr(head)->next_heap = heap->head;
-	heap->head = head;
+	mm_hdr_to_ftr(head)->next_heap = heap_class->head;
+	heap_class->head = head;
 
 	t_header *blk = mm_hdr_to_pl(head);
 	blk->size = mm_pl_size(head);
 	mm_set_hdr_mask(blk);
 	mm_set_free_bit(blk);
 	*mm_hdr_to_ftr(blk) = *blk;
-	mm_add_free_blk(heap, blk);
+	mm_add_free_blk(heap_class, blk);
 
 	return head;
+}
+
+bool mm_heap_empty(t_header *head)
+{
+	return mm_pl_size(head) == mm_blk_size(mm_hdr_to_pl(head));
+}
+
+static inline t_header *get_prev_heap(t_heap heap)
+{
+	t_header *prev = NULL;
+	t_header *start = heap._class->head;
+
+	while (start != heap.addr) {
+		prev = start;
+		start = mm_hdr_to_ftr(start)->next_heap;
+	}
+	return prev;
+}
+
+void mm_free_heap(t_heap heap)
+{
+	t_header *prev = get_prev_heap(heap);
+	if (prev == NULL) {
+		heap._class->head = mm_hdr_to_ftr(heap.addr)->next_heap;
+	} else {
+		mm_hdr_to_ftr(prev)->next_heap =
+		    mm_hdr_to_ftr(heap.addr)->next_heap;
+	}
+
+	munmap(heap.addr, mm_blk_size(heap.addr));
 }

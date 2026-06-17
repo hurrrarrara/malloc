@@ -28,7 +28,7 @@ typedef enum e_class { TINY, SMALL, BIG } t_class;
 #ifdef NDEBUG
 typedef union s_header {
 	size_t size;
-	union s_header *next;
+	union s_header *next_heap;
 } t_header __attribute__((aligned(ALIGNMENT)));
 #else
 
@@ -49,16 +49,21 @@ typedef struct s_free_pl {
 	t_header *prev;
 } t_free_pl __attribute__((aligned(ALIGNMENT)));
 
-typedef struct s_heap {
+typedef struct s_heap_class {
 	t_header *head;
 	t_header *free_list;
 	size_t size;
+} t_heap_class;
+
+typedef struct s_heap {
+	t_heap_class *_class;
+	t_header *addr;
 } t_heap;
 
 typedef struct s_malloc_state {
-	t_heap tiny;
-	t_heap small;
-	t_heap big;
+	t_heap_class tiny;
+	t_heap_class small;
+	t_heap_class big;
 } t_malloc_state;
 
 extern t_malloc_state g_state;
@@ -69,26 +74,19 @@ void mm_lock_mtx();
 void mm_unlock_mtx();
 
 t_header *mm_alloc_blk(size_t size);
-t_header *mm_is_blk(t_header *hdr);
-void *mm_free_blk(t_header *heap_addr, t_header *hdr);
+bool mm_is_blk(t_heap heap, t_header *blk);
+void mm_free_blk(t_heap heap, t_header *blk);
 
-t_heap mm_select_heap(size_t size);
-t_header *mm_grow_heap(t_heap *heap, size_t size);
+t_heap_class *mm_select_heap_class(size_t size);
+t_header *mm_grow_heap_class(t_heap_class *heap_class, size_t size);
+t_heap mm_ptr_to_heap(void *ptr);
+bool mm_heap_empty(t_header *head);
+void mm_free_heap(t_heap heap);
 
-void mm_add_free_blk(t_heap *heap, t_header *blk);
-void mm_rm_free_blk(t_heap *heap, t_header *hdr);
+void mm_add_free_blk(t_heap_class *heap_class, t_header *blk);
+void mm_rm_free_blk(t_heap_class *heap_class, t_header *blk);
 
-// void *allocate_block(size_t size);
-// void free_allocated_block(t_block *block, t_block *heap_addr);
-// bool is_valid_block(t_block *block, t_block *heap_header);
-//
-// void *expand_heap(t_heap *heap, size_t size);
-// t_block *get_heap_from_ptr(void *ptr);
-// void *is_valid_ptr(void *ptr);
-// void free_heap(t_heap *heap, t_block *heap_addr, t_free_block *block);
-//
-// void insert_block(t_free_block *block, t_heap *heap);
-// void pop_block(t_free_block *block, t_heap *heap);
+t_header *mm_coalesce(t_heap heap, t_header *blk);
 
 //---------------------------------------------------------------------------//
 
@@ -150,6 +148,7 @@ static inline bool mm_is_corrup(t_header *hdr)
 #ifndef NDEBUG
 	return hdr->mask != CORRUPTION_MASK;
 #endif
+	(void)hdr;
 	return false;
 }
 
@@ -157,6 +156,8 @@ static inline void mm_set_hdr_mask(t_header* hdr)
 {
 #ifndef NDEBUG
 	hdr->mask = CORRUPTION_MASK;
+#else
+	(void)hdr;
 #endif
 }
 /* clang-format on */
@@ -196,19 +197,26 @@ static inline void write_ptr(void *ptr)
 	write_nbr((uintptr_t)ptr, 16);
 }
 
-static inline bool corruption_check(void *block)
-{
 #ifndef NDEBUG
-	return ((t_block *)block)->mask == CORRUPTION_MASK;
-#endif
-	return true;
-}
+#define LOG(call) write_str(call "\n");
+#define LOG_ALLOC_FAIL(call, size)                                             \
+	write_str(call " alloc fail : ");                                      \
+	write_nbr(size, 10);                                                   \
+	write_str("\n");
 
-static inline void set_block_mask(void *block)
-{
-#ifndef NDEBUG
-	((t_block *)block)->mask = CORRUPTION_MASK;
-#endif
-}
+#define LOG_FREE_FAIL(call, ptr)                                               \
+	write_str(call " free fail : ");                                       \
+	write_ptr(ptr);                                                        \
+	write_str("\n");
 
+#define LOG_INVALID(call, ptr)                                                 \
+	write_str(call " invalid : ");                                         \
+	write_ptr(ptr);                                                        \
+	write_str("\n");
+#else
+#define LOG(call)
+#define LOG_ALLOC_FAIL(call, size)
+#define LOG_FREE_FAIL(call, size)
+#define LOG_INVALID(call, ptr)
+#endif
 #endif

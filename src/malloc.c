@@ -8,13 +8,14 @@ void *malloc_impl(size_t size)
 
 	t_header *blk = mm_alloc_blk(size);
 
-	return blk == NULL ? blk : mm_hdr_to_pl(blk);
+	return blk == NULL ? NULL : mm_hdr_to_pl(blk);
 }
 
 void *malloc(size_t size)
 {
 	if (size == 0)
 		return NULL;
+	LOG("malloc");
 
 	mm_lock_mtx();
 	g_state.big.size = 0;
@@ -22,6 +23,10 @@ void *malloc(size_t size)
 	g_state.small.size = SMALL_PAGE_SIZE;
 
 	void *ret = malloc_impl(size);
+
+	if (ret == NULL) {
+		LOG_ALLOC_FAIL("malloc", size);
+	}
 
 	mm_unlock_mtx();
 

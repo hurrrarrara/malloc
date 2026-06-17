@@ -54,8 +54,8 @@ void test_coalesce(void)
 
 int main(void)
 {
-	// test_basic();
-	// test_split();
-	// test_reuse();
+	test_basic();
+	test_split();
+	test_reuse();
 	test_coalesce();
 }

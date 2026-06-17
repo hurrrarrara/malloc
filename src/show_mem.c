@@ -1,9 +1,9 @@
 #include "../internal/malloc_internal.h"
 
-static void dump_block(t_block *block)
+static void dump_block(t_header *block)
 {
-	size_t size = block_size(block);
-	int is_alloc = !is_free_block(block);
+	size_t size = mm_blk_size(block);
+	int is_alloc = !mm_has_free_bit(block);
 
 	write_str("  [");
 	is_alloc ? write_str(C_RED) : write_str(C_GREEN);
@@ -14,41 +14,42 @@ static void dump_block(t_block *block)
 	write_str("\n");
 
 	if (is_alloc) {
-		void *payload = get_payload(block);
+		void *payload = mm_hdr_to_pl(block);
 
 		write_str("  [");
 		is_alloc ? write_str(C_RED) : write_str(C_GREEN);
 		write_ptr(payload);
 		write_str(C_RESET "] PAYLOAD size=");
-		write_nbr(size - sizeof(t_block) * 2, 10);
+		write_nbr(size - sizeof(t_header) * 2, 10);
 		write_str("\n");
 	} else {
-		t_free_block *free_blk = (t_free_block *)block;
+
+		t_free_pl *free_pl = mm_hdr_to_pl(block);
 		write_str("  [");
 		is_alloc ? write_str(C_RED) : write_str(C_GREEN);
-		write_ptr(get_payload(block));
+		write_ptr(mm_hdr_to_pl(block));
 		write_str(C_RESET "] FREE    next=" C_GREEN);
-		write_ptr(free_blk->next);
+		write_ptr(free_pl->next);
 		write_str(C_RESET " | prev=" C_GREEN);
-		write_ptr(free_blk->prev);
+		write_ptr(free_pl->prev);
 		write_str(C_RESET "\n");
 	}
 
-	t_block *ftr = get_footer(block);
+	t_header *ftr = mm_hdr_to_ftr(block);
 
 	write_str("  [");
-	!is_free_block(ftr) ? write_str(C_RED) : write_str(C_GREEN);
+	!mm_has_free_bit(ftr) ? write_str(C_RED) : write_str(C_GREEN);
 	write_ptr(ftr);
 	write_str(C_RESET "] FTR     size=");
-	write_nbr(block_size(ftr), 10);
+	write_nbr(mm_blk_size(ftr), 10);
 
 	write_str("\n");
 }
 
 void dump_heap(void *head, int nb, char *heap_class)
 {
-	t_block *footer;
-	size_t heap_size = block_size(head);
+	t_header *footer;
+	size_t heap_size = mm_blk_size(head);
 
 	if (nb > 0)
 		write_str("\n--------------------------------------------------"
@@ -64,21 +65,21 @@ void dump_heap(void *head, int nb, char *heap_class)
 	write_str(heap_class);
 	write_str("]\n\n");
 
-	t_block *block = (t_block *)((char *)head + sizeof(t_block));
-	t_block *end = get_footer(head);
+	t_header *block = (t_header *)((char *)head + sizeof(t_header));
+	t_header *end = mm_hdr_to_ftr(head);
 
 	while (block < end) {
 		dump_block(block);
 
-		block = next_block(block);
+		block = mm_next_hdr(block);
 		write_str("\n");
 	}
 
-	footer = get_footer(head);
+	footer = mm_hdr_to_ftr(head);
 
 	write_str("HEAP FOOTER next_heap=" C_CYAN);
-	if (footer->next)
-		write_ptr(footer->next);
+	if (footer->next_heap)
+		write_ptr(footer->next_heap);
 	else
 		write_str("NULL");
 	write_str(C_RESET);
@@ -103,22 +104,22 @@ void show_alloc_mem()
 		return;
 	}
 	size_t i = 0;
-	t_block *start = g_state.tiny.head;
+	t_header *start = g_state.tiny.head;
 	while (start != NULL) {
 		dump_heap(start, i++, C_CYAN "TINY" C_RESET);
-		start = get_footer(start)->next;
+		start = mm_hdr_to_ftr(start)->next_heap;
 	}
 	i = 0;
 	start = g_state.small.head;
 	while (start != NULL) {
 		dump_heap(start, i++, C_CYAN "SMALL" C_RESET);
-		start = get_footer(start)->next;
+		start = mm_hdr_to_ftr(start)->next_heap;
 	}
 	i = 0;
 	start = g_state.big.head;
 	while (start != NULL) {
 		dump_heap(start, i++, C_CYAN "BIG" C_RESET);
-		start = get_footer(start)->next;
+		start = mm_hdr_to_ftr(start)->next_heap;
 	}
 
 	write_str("\n\n=================================================\n");
