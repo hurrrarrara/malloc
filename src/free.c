@@ -1,6 +1,6 @@
 #include "../internal/malloc_internal.h"
 
-static inline void free_impl(void *ptr)
+static void free_impl(void *ptr)
 {
 	t_heap heap = mm_ptr_to_heap(ptr);
 	if (heap.addr == NULL) {

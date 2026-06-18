@@ -9,7 +9,7 @@ t_heap_class *mm_select_heap_class(size_t size)
 		   : (size <= SMALL_BLOCK_SIZE ? &g_state.small : &g_state.big);
 }
 
-static inline bool ptr_in_heap(t_header *head, void *ptr)
+static bool ptr_in_heap(t_header *head, void *ptr)
 {
 	return ptr >= mm_hdr_to_pl((t_header *)mm_hdr_to_pl(head)) &&
 	       ptr <= (void *)((char *)mm_hdr_to_ftr(head) - MIN_BLOCK_SIZE +
@@ -79,7 +79,7 @@ bool mm_heap_empty(t_header *head)
 	return mm_pl_size(head) == mm_blk_size(mm_hdr_to_pl(head));
 }
 
-static inline t_header *get_prev_heap(t_heap heap)
+static t_header *get_prev_heap(t_heap heap)
 {
 	t_header *prev = NULL;
 	t_header *start = heap._class->head;

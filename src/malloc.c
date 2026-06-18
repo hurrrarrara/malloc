@@ -1,6 +1,6 @@
 #include "../internal/malloc_internal.h"
 
-void *malloc_impl(size_t size)
+static void *malloc_impl(size_t size)
 {
 	size = mm_conform_size(size);
 

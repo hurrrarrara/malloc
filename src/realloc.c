@@ -2,8 +2,8 @@
 #include "../internal/malloc_internal.h"
 #include <errno.h>
 
-static inline void *realloc_smaller_size(t_heap heap, t_header *blk,
-					 size_t size, size_t old_size)
+static void *realloc_smaller_size(t_heap heap, t_header *blk, size_t size,
+				  size_t old_size)
 {
 	blk->size = size;
 	*mm_hdr_to_ftr(blk) = *blk;
@@ -15,7 +15,7 @@ static inline void *realloc_smaller_size(t_heap heap, t_header *blk,
 	return mm_hdr_to_pl(blk);
 }
 
-static inline void *realloc_impl(void *ptr, size_t size)
+static void *realloc_impl(void *ptr, size_t size)
 {
 	t_heap heap = mm_ptr_to_heap(ptr);
 	if (heap.addr == NULL) {

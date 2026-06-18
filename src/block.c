@@ -1,6 +1,6 @@
 #include "../internal/malloc_internal.h"
 
-static inline t_header *get_free_blk(t_heap_class *heap_class, size_t size)
+static t_header *get_free_blk(t_heap_class *heap_class, size_t size)
 {
 	t_header *start = heap_class->free_list;
 	while (start) {
@@ -13,7 +13,7 @@ static inline t_header *get_free_blk(t_heap_class *heap_class, size_t size)
 	return get_free_blk(heap_class, size);
 }
 
-static inline void *split_block(t_header *blk, size_t size)
+static void *split_block(t_header *blk, size_t size)
 {
 	size_t split_size = mm_blk_size(blk) - size;
 	blk->size = split_size;
@@ -47,7 +47,7 @@ t_header *mm_alloc_blk(size_t size)
 	return blk;
 }
 
-static inline bool mm_blk_in_heap(t_header *head, t_header *blk)
+static bool mm_blk_in_heap(t_header *head, t_header *blk)
 {
 #ifndef NDEBUG
 	t_header *start = mm_hdr_to_pl(head);
