@@ -22,15 +22,12 @@ void free(void *ptr)
 {
 	LOG_FREE_CALL(ptr);
 	if (ptr == NULL || !IS_ALIGNED((uintptr_t)ptr)) {
-		LOG_INVALID("free", ptr);
-		// show_alloc_mem();
 		return;
 	}
 
 	mm_lock_mtx();
-	g_state.big.size = 0;
-	g_state.tiny.size = TINY_PAGE_SIZE;
-	g_state.small.size = SMALL_PAGE_SIZE;
+
+	mm_init_state();
 
 	free_impl(ptr);
 

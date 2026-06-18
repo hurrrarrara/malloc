@@ -85,7 +85,7 @@ void dump_heap(void *head, int nb, char *heap_class)
 	write_str(C_RESET);
 }
 
-void show_alloc_mem()
+static inline void show_alloc_mem_impl()
 {
 	write_str("\n================ ALLOCATOR STATE ================\n\n");
 	write_nbr(TINY_PAGE_SIZE, 10);
@@ -123,4 +123,13 @@ void show_alloc_mem()
 	}
 
 	write_str("\n\n=================================================\n");
+}
+
+void show_alloc_mem()
+{
+	mm_lock_mtx();
+
+	show_alloc_mem_impl();
+
+	mm_unlock_mtx();
 }

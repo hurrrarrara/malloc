@@ -15,7 +15,7 @@ DBG_FLAGS = -g3 -O0 -fno-omit-frame-pointer
 ifeq ($(DEBUG),1)
     CFLAGS += $(DBG_FLAGS)
 else
-    CFLAGS += -DNDEBUG
+    CFLAGS += -DNDEBUG -O2
 endif
 
 
@@ -32,25 +32,24 @@ SRC       := \
 	$(SRC_DIR)/block.c \
 	$(SRC_DIR)/free_list.c \
 	$(SRC_DIR)/coalesce.c \
+	$(SRC_DIR)/mem_op.c \
 	$(SRC_DIR)/show_mem.c
 
 OBJ     := $(SRC:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 INC := includes/malloc.h internal/malloc_internal.h
 
-all: $(NAME) symlink
+all: $(NAME) 
 
 $(NAME): $(OBJ)
 	$(CC) $(LDFLAGS) -o $@ $^
+	ln -sf $(NAME) $(LINK)
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c includes/malloc.h
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c includes/malloc.h internal/malloc_internal.h
 	@mkdir -p $(OBJ_DIR)
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
-symlink: $(NAME)
-	ln -sf $(NAME) $(LINK)
-
 clean:
-	rm -f $(OBJ)
+	rm -rf $(OBJ_DIR)
 
 fclean: clean
 	rm -f $(NAME) $(LINK)
@@ -58,4 +57,4 @@ fclean: clean
 re: fclean all
 
 
-.PHONY: all clean fclean re symlink debug
+.PHONY: all clean fclean re 

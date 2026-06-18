@@ -15,9 +15,9 @@
 	(((size) + (sysconf(_SC_PAGESIZE) - 1)) & ~(ALIGNMENT - 1))
 
 #define TINY_BLOCK_SIZE (size_t)ALIGN(512)
-#define TINY_PAGE_SIZE ALIGN_PAGE(TINY_BLOCK_SIZE * 256)
+#define TINY_PAGE_SIZE ALIGN_PAGE(TINY_BLOCK_SIZE * 128)
 #define SMALL_BLOCK_SIZE (size_t)ALIGN(sysconf(_SC_PAGESIZE) / 2)
-#define SMALL_PAGE_SIZE ALIGN_PAGE(SMALL_BLOCK_SIZE * 512)
+#define SMALL_PAGE_SIZE ALIGN_PAGE(SMALL_BLOCK_SIZE * 128)
 
 #define MIN_BLOCK_SIZE (size_t)ALIGN(sizeof(t_free_pl) + 2 * sizeof(t_header))
 
@@ -53,6 +53,7 @@ typedef struct s_heap_class {
 	t_header *head;
 	t_header *free_list;
 	size_t size;
+	size_t min_blk_size;
 } t_heap_class;
 
 typedef struct s_heap {
@@ -88,9 +89,22 @@ void mm_rm_free_blk(t_heap_class *heap_class, t_header *blk);
 
 t_header *mm_coalesce(t_heap heap, t_header *blk);
 
+void *mm_memset(void *ptr, int value, size_t count);
+void *mm_memmove(void *d, const void *s, size_t n);
+void *mm_memcpy(void *d, const void *s, size_t n);
+
 //---------------------------------------------------------------------------//
 
 /* clang-format off */
+
+static inline void mm_init_state() {
+	g_state.big.size = 0;
+	g_state.big.min_blk_size = 0;
+	g_state.tiny.size = TINY_PAGE_SIZE;
+	g_state.tiny.min_blk_size= MIN_BLOCK_SIZE;
+	g_state.small.size = SMALL_PAGE_SIZE;
+	g_state.small.min_blk_size = TINY_BLOCK_SIZE;
+}
 
 static inline size_t mm_conform_size(size_t size) {
 	size = ALIGN(size + 2 * sizeof(t_header));

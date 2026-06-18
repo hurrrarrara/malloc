@@ -49,6 +49,7 @@ t_header *mm_alloc_blk(size_t size)
 
 static inline bool mm_blk_in_heap(t_header *head, t_header *blk)
 {
+#ifndef NDEBUG
 	t_header *start = mm_hdr_to_pl(head);
 	t_header *end = mm_hdr_to_ftr(head);
 	while (start != end) {
@@ -57,6 +58,10 @@ static inline bool mm_blk_in_heap(t_header *head, t_header *blk)
 		start = mm_next_hdr(start);
 	}
 	return false;
+#endif
+	(void)head;
+	(void)blk;
+	return true;
 }
 
 bool mm_is_blk(t_heap heap, t_header *blk)

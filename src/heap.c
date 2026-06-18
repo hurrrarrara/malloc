@@ -1,4 +1,5 @@
 #include "../internal/malloc_internal.h"
+#include <errno.h>
 #include <sys/mman.h>
 
 t_heap_class *mm_select_heap_class(size_t size)
@@ -54,8 +55,10 @@ t_header *mm_grow_heap_class(t_heap_class *heap_class, size_t size)
 	size = heap_class->size ? heap_class->size : ALIGN_PAGE(size);
 	t_header *head = mmap(heap_class->head, size, PROT_READ | PROT_WRITE,
 			      MAP_PRIVATE | MAP_ANON, -1, 0);
-	if (head == MAP_FAILED)
+	if (head == MAP_FAILED) {
+		errno = ENOMEM;
 		return NULL;
+	}
 	head->size = size;
 	mm_set_hdr_mask(head);
 	mm_hdr_to_ftr(head)->next_heap = heap_class->head;
