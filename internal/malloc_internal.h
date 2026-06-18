@@ -178,14 +178,14 @@ static inline void mm_set_hdr_mask(t_header* hdr)
 
 //---------------------------------------------------------------------------//
 
-#define C_RESET "\x1b[0m"
-#define C_RED "\x1b[31m"
-#define C_GREEN "\x1b[32m"
-#define C_YELLOW "\x1b[33m"
-#define C_BLUE "\x1b[34m"
-#define C_MAGENTA "\x1b[35m"
-#define C_CYAN "\x1b[36m"
-#define C_GRAY "\x1b[90m"
+#define C_RESET ""   // "\x1b[0m"
+#define C_RED ""     // "\x1b[31m"
+#define C_GREEN ""   // "\x1b[32m"
+#define C_YELLOW ""  // "\x1b[33m"
+#define C_BLUE ""    // "\x1b[34m"
+#define C_MAGENTA "" //  "\x1b[35m"
+#define C_CYAN ""    //  "\x1b[36m"
+#define C_GRAY ""    //  "\x1b[90m"
 
 static inline void write_str(const char *s)
 {
